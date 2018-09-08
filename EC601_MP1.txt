@@ -1,0 +1,31 @@
+Charles McPherson, Jr.
+EC601 Section A1
+Mini-Project 1
+
+Design Notebook
+
+Function List (top-level):
+
+GetTwImages()
+    Purpose:    This function goes through a specified user's twitter feed and extracts images from their tweets (After sprint 2).  At the end of sprint 1, this function needs to take in a list of files from a text file, filter out non-images based on the name, and output the image file names only.
+    Inputs:     handle - The user's Twitter handle
+    Outputs:    images - A list of images
+
+ConstructVideo()
+    Purpose:    This function takes in an array of images and stiches them together into a video.  Based on a maximum framerate, minimum video duration, and the number of available stills, the duration that each frame apperas on screen before changing will be adjusted (After sprint 3).  For sprint1, this function will take in a list of file names, reject non-images, and output the image file names, a caption, and a duration in seconds that it will appear on screen.
+    Inputs:     images - A list of images
+                text - A list of captions for images
+                maxRate - A maximum image rate
+                minDuration - A minimum video duration.
+
+CaptionImage()
+    Purpose:    This function will add a caption to an image based on the identifed content (after sprint 4).  After sprint 1, this will simply append the caption to the file name (after a tab character).
+    Inputs:     im - An image file.
+    Output:     captioned - A captioned image.
+
+Lower-Level Functions:
+
+GVIdentify()
+    Purpose:    This function will use the Google Vision API to identify the content of an image.  If no content is found, it will simply output an empty list (After sprint 4).  For sprint 1, this function will simply output a list of random words from a larger fixed list.  
+    Inputs:     image - The image to examine.
+    Ouputs:     content - Identified content, ranked from highest confidence to lowest (up to 3).
