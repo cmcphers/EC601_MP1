@@ -27,6 +27,22 @@ def GetTwImages(handle):
 
     return images # Return images
 
+def ConstructVideo(images, maxRate, minDuration):
+    if(minDuration < 0):
+        return -1
+    elif(maxRate < 0):
+        return -1
+    nImages= len(images)
+    dur = minDuration/nImages
+    if(dur < 1.0/maxRate):
+        dur = 1.0/maxRate
+    f = open('output.txt','w+') # Open output file for writing.
+    for im in images:
+        f.write(im + ' ' + str(dur) + '\n');
+    f.close()
+    return 0
+
+
 def CaptionImage(im):
     c = GVIdentify(im);
     captioned = im;

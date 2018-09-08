@@ -1,0 +1,4 @@
+ham.jpg, fire 7.5
+rum.png, apple, failure 7.5
+deesabird.tiff, saxophone 7.5
+toeknife.jpeg, nature, carptentry, air 7.5
