@@ -4,7 +4,12 @@
 # Mini-Project 1
 #########################################################
 
+import random
+
 supportedTypes = ['png', 'jpg', 'jpeg', 'tiff'];
+t_wordList = ['apple', 'orange', 'saxophone', 'armchair', 'Nikola Tesla', 
+    'Steve McQueen', 'carptentry', 'nature', 'picture', 'ennui', 'failure',
+    'nothing', 'something', 'wood', 'steel', 'fire', 'water', 'air', 'the void'];
 
 def GetTwImages(handle):
     # For sprint 1, simply read the images from a local file with that name.
@@ -21,7 +26,23 @@ def GetTwImages(handle):
             images.append(obj) # If the attached file is an image, append.
 
     return images # Return images
+
+def CaptionImage(im):
+    c = GVIdentify(im);
+    captioned = im;
+    for word in c:
+        captioned += ', '
+        captioned += word
+    return captioned
     
+
+def GVIdentify(im):
+    random.seed(); # Seed the random number generator.
+    nChoices = random.randint(0,3); # Random number of choices.
+    content = []
+    for i in range(nChoices): # Construct list of random words from the list.
+        content.append(random.choice(t_wordList));
+    return content
 
 def IsImage(im):
     p = im.rpartition('.')

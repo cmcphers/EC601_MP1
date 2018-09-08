@@ -5,5 +5,13 @@
 
 import MP01
 
+# Test code for GetTwImages()
+
 fileList = MP01.GetTwImages('FrankReynolds.txt')
 print(fileList)
+
+# Test code for CaptionImage()
+
+for f in fileList:
+    t = MP01.CaptionImage(f)
+    print(t)
