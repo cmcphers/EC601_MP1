@@ -4,16 +4,31 @@
 # Mini-Project 1
 #########################################################
 
+supportedTypes = ['png', 'jpg', 'jpeg', 'tiff'];
+
 def GetTwImages(handle):
     # For sprint 1, simply read the images from a local file with that name.
-    f = open(handle,'r') # Open file for reading.
-    tweets = f.read() # Read the entire file.
+    f = open(handle,'r') # Open file for reading..
+    tweets = [];
+    for line in f:
+        tweets.append(line.rstrip());
     f.close() # Close it so as not to be a dick.
 
     # Filter out non-images.
     images = [];
     for obj in tweets:
         if(IsImage(obj)):
-            images.extend(obj) # If the attached file is an image, append.
+            images.append(obj) # If the attached file is an image, append.
 
     return images # Return images
+    
+
+def IsImage(im):
+    p = im.rpartition('.')
+    ext = p[2] # Get the filename extension.
+    r = False # By default, the result is false.
+    for t in supportedTypes:
+        if(t == ext):
+            r = True
+            break
+    return r
