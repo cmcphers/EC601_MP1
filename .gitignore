@@ -1,2 +1,6 @@
 Mini-Project1.pages
 __pycache__/
+*.jpg
+*.tiff
+*.png
+*.bmp
