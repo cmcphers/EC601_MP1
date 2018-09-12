@@ -7,7 +7,7 @@ import MP01
 
 # Test code for GetTwImages()
 
-fileList = MP01.GetTwImages('FrankReynolds.txt')
+fileList = MP01.GetTwImages('@Charles32752654')
 print(fileList)
 
 # Test code for CaptionImage()

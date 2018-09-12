@@ -1,4 +1,3 @@
-ham.jpg, fire 7.5
-rum.png, apple, failure 7.5
-deesabird.tiff, saxophone 7.5
-toeknife.jpeg, nature, carptentry, air 7.5
+http://pbs.twimg.com/media/Dm7HxykXgAEFKyv.jpg 10.0
+http://pbs.twimg.com/media/Dm7HpLqWwAAbUPV.jpg 10.0
+http://pbs.twimg.com/media/Dm3K8hlUUAAX9z_.jpg 10.0

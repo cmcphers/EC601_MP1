@@ -5,27 +5,80 @@
 #########################################################
 
 import random
+import tweepy
+import urllib.request
 
-supportedTypes = ['png', 'jpg', 'jpeg', 'tiff'];
+MAX_IMAGES = 4 # Limit to 10 images at this point to prevent filling up the folder.
+PER_REQUEST = 2 # Retreive 10 tweets at a time.
+MAX_QUERY = 10 # Limit to 10 querys
+
+consumer_key = "vsRQBAfBv3tn4RTvdNSGlS8sa"
+consumer_secret = "8l2mhX3RMYl73OFWFitwnJ6yH7vVPq4ibevTptgkDkILCYKOvm"
+access_key = "1039252782048526337-AvoHPzZa745r6G2EjWKDakNaMU7hK5"
+access_secret = "pP5wZBibgb9P3kbJpNf9zTyodO1i0BBQMhOCHbAMkDlM3"
+
 t_wordList = ['apple', 'orange', 'saxophone', 'armchair', 'Nikola Tesla', 
     'Steve McQueen', 'carptentry', 'nature', 'picture', 'ennui', 'failure',
-    'nothing', 'something', 'wood', 'steel', 'fire', 'water', 'air', 'the void'];
+    'nothing', 'something', 'wood', 'steel', 'fire', 'water', 'air', 'the void']
 
 def GetTwImages(handle):
-    # For sprint 1, simply read the images from a local file with that name.
-    f = open(handle,'r') # Open file for reading..
-    tweets = [];
-    for line in f:
-        tweets.append(line.rstrip());
-    f.close() # Close it so as not to be a dick.
+    # For sprint 2, extract the images from the tweets, extract file names,
+    # and save the actual files to disk.
 
-    # Filter out non-images.
-    images = [];
-    for obj in tweets:
-        if(IsImage(obj)):
-            images.append(obj) # If the attached file is an image, append.
+    # Initialize the TweePy API
+    auth = tweepy.OAuthHandler(consumer_key, consumer_secret)
+    auth.set_access_token(access_key, access_secret)
+    api = tweepy.API(auth)
 
-    return images # Return images
+    # Grab newest tweets.
+    try:
+        tw = api.user_timeline(screen_name = handle, count = PER_REQUEST)
+    except tweepy.TweepyError as e:
+        print(e.message)
+        return []
+    
+    # Keep track of number of images downloaded.
+    image_counter = 0
+    query_counter = 1
+    images = []
+    # Keep collecting images until you have the maximum. 
+    while image_counter < MAX_IMAGES:
+        # Loop through the tweets from the query.
+        for tweet in tw:
+            if('media' in tweet.entities): # If there is attached media, scan through it.
+                for obj in tweet.entities['media']:
+                    if(obj['type'] == 'photo'): # If the item is a photo, 
+                        url = obj['media_url'] # Get the URL,
+                        ext = url.rpartition('.')[2] # Determine the file extension.
+                        r = urllib.request.urlopen(obj['media_url']) # Get the HTML request.
+                        # Write the image data to a file.
+                        f = open('TwImage_' + str(image_counter) + '.' + ext,'wb')
+                        f.write(r.read())
+                        f.close()
+                        # Append the file URL to the list.
+                        images.append(url)
+                        # Increment the counter.
+                        image_counter = image_counter + 1
+                        # If we've grabbed enough images, break.
+                        if(image_counter >= MAX_IMAGES):
+                            break
+            if(image_counter >= MAX_IMAGES):
+                break
+        if(image_counter >= MAX_IMAGES):
+            break
+        oldest = tw[-1].id -1 # Get id of oldest tweet in the list, and subtract one.
+        try:
+            # Get PER_REQUEST more tweets starting just before the oldest one in the last
+            # query.
+            tw = api.user_timeline(screen_name = handle, count = PER_REQUEST, max_id = oldest)
+            query_counter = query_counter + 1
+        except tweepy.TweepyError as e:
+            print(e.message)
+            return []
+        if(query_counter > MAX_QUERY or len(tw) == 0):
+            break
+
+    return images
 
 def ConstructVideo(images, maxRate, minDuration):
     if(minDuration < 0):
