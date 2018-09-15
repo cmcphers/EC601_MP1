@@ -9,8 +9,8 @@ import tweepy
 import urllib.request
 
 MAX_IMAGES = 4 # Limit to 10 images at this point to prevent filling up the folder.
-PER_REQUEST = 2 # Retreive 10 tweets at a time.
-MAX_QUERY = 10 # Limit to 10 querys
+PER_REQUEST = 10 # Retreive 10 tweets at a time.
+MAX_QUERY = 20 # Limit to 10 querys
 
 consumer_key = "vsRQBAfBv3tn4RTvdNSGlS8sa"
 consumer_secret = "8l2mhX3RMYl73OFWFitwnJ6yH7vVPq4ibevTptgkDkILCYKOvm"
@@ -86,6 +86,8 @@ def ConstructVideo(images, maxRate, minDuration):
     elif(maxRate < 0):
         return -1
     nImages= len(images)
+    if(nImages < 0):
+        return -1
     dur = minDuration/nImages
     if(dur < 1.0/maxRate):
         dur = 1.0/maxRate
