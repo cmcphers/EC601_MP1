@@ -7,27 +7,35 @@
 import random
 import tweepy
 import urllib.request
+import FFmpeg from ffmpy
 
 MAX_IMAGES = 4 # Limit to 10 images at this point to prevent filling up the folder.
 PER_REQUEST = 10 # Retreive 10 tweets at a time.
 MAX_QUERY = 20 # Limit to 10 querys
-
-consumer_key = "vsRQBAfBv3tn4RTvdNSGlS8sa"
-consumer_secret = "8l2mhX3RMYl73OFWFitwnJ6yH7vVPq4ibevTptgkDkILCYKOvm"
-access_key = "1039252782048526337-AvoHPzZa745r6G2EjWKDakNaMU7hK5"
-access_secret = "pP5wZBibgb9P3kbJpNf9zTyodO1i0BBQMhOCHbAMkDlM3"
+SIZE = [1920,980] # Frame size.
+BORDERSIZE = [1920,1080] # Border size.
 
 t_wordList = ['apple', 'orange', 'saxophone', 'armchair', 'Nikola Tesla', 
     'Steve McQueen', 'carptentry', 'nature', 'picture', 'ennui', 'failure',
     'nothing', 'something', 'wood', 'steel', 'fire', 'water', 'air', 'the void']
 
+def __ReadKeys__():
+    keys = []
+    with open('Keys.txt','r') as f:
+        for line in f:
+            keys.append(line.strip())
+    return keys
+
 def GetTwImages(handle):
     # For sprint 2, extract the images from the tweets, extract file names,
     # and save the actual files to disk.
 
+    # New change - Read keys from file.
+    keys = __ReadKeys__()
+
     # Initialize the TweePy API
-    auth = tweepy.OAuthHandler(consumer_key, consumer_secret)
-    auth.set_access_token(access_key, access_secret)
+    auth = tweepy.OAuthHandler(keys[0], keys[1])
+    auth.set_access_token(keys[2], keys[3])
     api = tweepy.API(auth)
 
     # Grab newest tweets.
@@ -35,7 +43,7 @@ def GetTwImages(handle):
         tw = api.user_timeline(screen_name = handle, count = PER_REQUEST)
     except tweepy.TweepyError as e:
         print(e.message)
-        return []
+        return {'error':e.message}
     
     # Keep track of number of images downloaded.
     image_counter = 0
@@ -52,11 +60,13 @@ def GetTwImages(handle):
                         ext = url.rpartition('.')[2] # Determine the file extension.
                         r = urllib.request.urlopen(obj['media_url']) # Get the HTML request.
                         # Write the image data to a file.
-                        f = open('TwImage_' + str(image_counter) + '.' + ext,'wb')
+                        fspec = "TwImage_%03d"
+                        fileName = fspec + '.' + ext % image_counter
+                        f = open(fileName,'wb')
                         f.write(r.read())
                         f.close()
                         # Append the file URL to the list.
-                        images.append(url)
+                        images.append(fileName)
                         # Increment the counter.
                         image_counter = image_counter + 1
                         # If we've grabbed enough images, break.
@@ -74,37 +84,53 @@ def GetTwImages(handle):
             query_counter = query_counter + 1
         except tweepy.TweepyError as e:
             print(e.message)
-            return []
+            return {'error':e.message}
         if(query_counter > MAX_QUERY or len(tw) == 0):
             break
 
-    return images
+    return {'files':images,'fSpec':fspec,'count':image_counter}
 
-def ConstructVideo(images, maxRate, minDuration):
+def ConstructVideo(imData, maxRate, minDuration):
     if(minDuration < 0):
         return -1
     elif(maxRate < 0):
         return -1
-    nImages= len(images)
-    if(nImages < 0):
+    if(imData['count'] < 1):
         return -1
-    dur = minDuration/nImages
-    if(dur < 1.0/maxRate):
-        dur = 1.0/maxRate
-    f = open('output.txt','w+') # Open output file for writing.
-    for im in images:
-        f.write(im + ' ' + str(dur) + '\n');
-    f.close()
-    return 0
+    fr = imData['count']/maxRate
+    if(fr > maxRate):
+        fr = maxRate
+    # Setup FFMPEG command to concatentate the images.
+    ff = FFmpeg(
+        inputs = {imData['fSpec'] + '.jpg':'-loglevel quiet -y'},
+        outputs = {'out.mp4','-r ' + str(fr)}
+    )
+    ff.run() # Invoke FFMPEG
+    return 0 # Indicate success
 
 
 def CaptionImage(im):
     c = GVIdentify(im);
-    captioned = im;
-    for word in c:
-        captioned += ', '
-        captioned += word
-    return captioned
+    caption = im;
+    for word in c: # Make a list of random words (sprint 1)
+        caption += ', '
+        caption += word
+    baseFileName = im.rprartition('.')[0] # Get the base file name.
+    outName = baseFileName + '.jpg' # Convert to JPEG.
+    # Expression to calculate the scale fatcor.
+    scalexpr = '\'min('+str(SIZE[0])+'/iw,'+str(SIZE[1])+'/ih)\''
+    # Setup FFMPEG command to scale the images, pad them, and add the caption.
+    ff = FFmpeg(
+        inputs = {im:'-loglevel quiet -y'},
+        outputs = {outName:'-filter:v scale="iw*' scalexpr + ':ih*' + scalexpr + 
+            '",pad="' + str(BORDERSIZE[0]) + ':' + str(BORDERSIZE[1]) + ':(' + str(SIZE[0]) + 
+            '- iw*' + scalexpr + ')/2:(' + str(SIZE[1]) + '- ih*' + scalexpr + 
+            ')/2",drawtext="fontfile=/Library/Fonts/Arial.ttf:text\'' + caption + '\':x=(' + 
+            str(BORDERSIZE[0]) + '-text_w)/2:y=' + str(round((FRAMESIZE[1]+BORDERSIZE[1])/2)) + 
+            ':fontsize=20:fontcolor=white@1.0"'}
+    )
+    ff.run() # Invoke FFMPEG
+    return baseFileName + '.jpg'
     
 
 def GVIdentify(im):
