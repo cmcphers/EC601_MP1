@@ -7,13 +7,13 @@
 import random
 import tweepy
 import urllib.request
-import FFmpeg from ffmpy
+from ffmpy import FFmpeg
 
-MAX_IMAGES = 4 # Limit to 10 images at this point to prevent filling up the folder.
+MAX_IMAGES = 100 # Limit to 10 images at this point to prevent filling up the folder.
 PER_REQUEST = 10 # Retreive 10 tweets at a time.
-MAX_QUERY = 20 # Limit to 10 querys
-SIZE = [1920,980] # Frame size.
-BORDERSIZE = [1920,1080] # Border size.
+MAX_QUERY = 100 # Limit to 10 querys
+SIZE = [640,260] # Frame size.
+BORDERSIZE = [640,360] # Border size.
 
 t_wordList = ['apple', 'orange', 'saxophone', 'armchair', 'Nikola Tesla', 
     'Steve McQueen', 'carptentry', 'nature', 'picture', 'ennui', 'failure',
@@ -61,7 +61,7 @@ def GetTwImages(handle):
                         r = urllib.request.urlopen(obj['media_url']) # Get the HTML request.
                         # Write the image data to a file.
                         fspec = "TwImage_%03d"
-                        fileName = fspec + '.' + ext % image_counter
+                        fileName = (fspec + '.' + ext) % image_counter
                         f = open(fileName,'wb')
                         f.write(r.read())
                         f.close()
@@ -102,31 +102,32 @@ def ConstructVideo(imData, maxRate, minDuration):
         fr = maxRate
     # Setup FFMPEG command to concatentate the images.
     ff = FFmpeg(
-        inputs = {imData['fSpec'] + '.jpg':'-loglevel quiet -y'},
-        outputs = {'out.mp4','-r ' + str(fr)}
+        inputs = {imData['fSpec'] + '.jpg':'-loglevel quiet -y -framerate 1'},
+        outputs = {'out.mp4':'-r 1'}
     )
+    print(ff.cmd)
     ff.run() # Invoke FFMPEG
     return 0 # Indicate success
 
 
 def CaptionImage(im):
     c = GVIdentify(im);
-    caption = im;
+    caption = '';
     for word in c: # Make a list of random words (sprint 1)
         caption += ', '
         caption += word
-    baseFileName = im.rprartition('.')[0] # Get the base file name.
+    baseFileName = im.rpartition('.')[0] # Get the base file name.
     outName = baseFileName + '.jpg' # Convert to JPEG.
     # Expression to calculate the scale fatcor.
     scalexpr = '\'min('+str(SIZE[0])+'/iw,'+str(SIZE[1])+'/ih)\''
     # Setup FFMPEG command to scale the images, pad them, and add the caption.
     ff = FFmpeg(
         inputs = {im:'-loglevel quiet -y'},
-        outputs = {outName:'-filter:v scale="iw*' scalexpr + ':ih*' + scalexpr + 
+        outputs = {outName:'-filter:v scale="iw*' + scalexpr + ':ih*' + scalexpr + 
             '",pad="' + str(BORDERSIZE[0]) + ':' + str(BORDERSIZE[1]) + ':(' + str(SIZE[0]) + 
             '- iw*' + scalexpr + ')/2:(' + str(SIZE[1]) + '- ih*' + scalexpr + 
-            ')/2",drawtext="fontfile=/Library/Fonts/Arial.ttf:text\'' + caption + '\':x=(' + 
-            str(BORDERSIZE[0]) + '-text_w)/2:y=' + str(round((FRAMESIZE[1]+BORDERSIZE[1])/2)) + 
+            ')/2",drawtext="fontfile=/Library/Fonts/Arial.ttf:text=\'' + caption + '\':x=(' + 
+            str(BORDERSIZE[0]) + '-text_w)/2:y=' + str(round((SIZE[1]+BORDERSIZE[1])/2)) + 
             ':fontsize=20:fontcolor=white@1.0"'}
     )
     ff.run() # Invoke FFMPEG
