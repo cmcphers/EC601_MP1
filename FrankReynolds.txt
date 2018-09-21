@@ -1,6 +1,0 @@
-ham.jpg
-rum.png
-gun.txt
-rum_ham.html
-deesabird.tiff
-toeknife.jpeg
