@@ -7,17 +7,17 @@
 import random
 import tweepy
 import urllib.request
+import os
 from ffmpy import FFmpeg
+from google.cloud import vision
+from google.cloud.vision import types
 
-MAX_IMAGES = 100 # Limit to 10 images at this point to prevent filling up the folder.
+MAX_IMAGES = 100 # Limit to 100 images at this point to prevent filling up the folder.
 PER_REQUEST = 10 # Retreive 10 tweets at a time.
-MAX_QUERY = 100 # Limit to 10 querys
+MAX_QUERY = 100 # Limit to 100 querys
 SIZE = [640,260] # Frame size.
 BORDERSIZE = [640,360] # Border size.
-
-t_wordList = ['apple', 'orange', 'saxophone', 'armchair', 'Nikola Tesla', 
-    'Steve McQueen', 'carptentry', 'nature', 'picture', 'ennui', 'failure',
-    'nothing', 'something', 'wood', 'steel', 'fire', 'water', 'air', 'the void']
+MAX_ANNOTATIONS = 3 # Maximum of three words per image.
 
 def __ReadKeys__():
     keys = []
@@ -91,22 +91,38 @@ def GetTwImages(handle):
     return {'files':images,'fSpec':fspec,'count':image_counter}
 
 def ConstructVideo(imData, maxRate, minDuration):
-    if(minDuration < 0):
-        return -1
-    elif(maxRate < 0):
-        return -1
+    if(minDuration <= 0):
+        print('ConstructVideo() parameter error: \'minDuration\' must be a positive non-zero value') 
+        return -2
+    elif(maxRate <= 0):
+        print('ConstructVideo() parameter error: \'maxRate\' must be a positive non-zero value')
+        return -3
     if(imData['count'] < 1):
+        print('ConstructVideo() parameter error: field \'count\' in \'imData\' is less than 1, indicating no images present')
         return -1
     fr = imData['count']/maxRate
     if(fr > maxRate):
         fr = maxRate
     # Setup FFMPEG command to concatentate the images.
     ff = FFmpeg(
-        inputs = {imData['fSpec'] + '.jpg':'-loglevel quiet -y -framerate 1'},
-        outputs = {'out.mp4':'-r 1'}
+        inputs = {imData['fSpec'] + '.jpg':'-loglevel quiet -y -framerate ' + fr},
+        outputs = {'out.mp4':'-r ' + fr}
     )
-    print(ff.cmd)
+    #print(ff.cmd)
     ff.run() # Invoke FFMPEG
+
+    # Delete the files (jpeg and otherwise)
+    for f in imData['files']:
+        splt = f.rpartition('.')
+        ext = splt[2]
+        base = splt[0]
+        # If the file was not a jpeg to begin with,
+        # remove its original as well.
+        if(ext != 'jpg'):
+            os.remove(f)
+        # Delete the jpeg.
+        os.remove(base + '.jpg')
+
     return 0 # Indicate success
 
 
@@ -114,8 +130,8 @@ def CaptionImage(im):
     c = GVIdentify(im);
     caption = '';
     for word in c: # Make a list of random words (sprint 1)
-        caption += ', '
         caption += word
+        caption += '  '
     baseFileName = im.rpartition('.')[0] # Get the base file name.
     outName = baseFileName + '.jpg' # Convert to JPEG.
     # Expression to calculate the scale fatcor.
@@ -126,7 +142,7 @@ def CaptionImage(im):
         outputs = {outName:'-filter:v scale="iw*' + scalexpr + ':ih*' + scalexpr + 
             '",pad="' + str(BORDERSIZE[0]) + ':' + str(BORDERSIZE[1]) + ':(' + str(SIZE[0]) + 
             '- iw*' + scalexpr + ')/2:(' + str(SIZE[1]) + '- ih*' + scalexpr + 
-            ')/2",drawtext="fontfile=/Library/Fonts/Arial.ttf:text=\'' + caption + '\':x=(' + 
+            ')/2",drawtext="fontfile=./Butler_Regular.otf:text=\'' + caption + '\':x=(' + 
             str(BORDERSIZE[0]) + '-text_w)/2:y=' + str(round((SIZE[1]+BORDERSIZE[1])/2)) + 
             ':fontsize=20:fontcolor=white@1.0"'}
     )
@@ -135,19 +151,24 @@ def CaptionImage(im):
     
 
 def GVIdentify(im):
-    random.seed(); # Seed the random number generator.
-    nChoices = random.randint(0,3); # Random number of choices.
+    # Ininitiate the image annotator client.
+    client = vision.ImageAnnotatorClient()
+    # Open the image.
+    with open(im,'rb') as f:
+        imData = f.read()
+    image = types.Image(content=imData)
+    # Perform the detection
+    det = client.label_detection(image=image)
+    # Get the annotations
+    annot = det.label_annotations
+    # Retrieve just the descriptions from the labels
     content = []
-    for i in range(nChoices): # Construct list of random words from the list.
-        content.append(random.choice(t_wordList));
+    i = 0
+    for label in annot:
+        content.append(label.description)
+        i += 1
+        if(i >= MAX_ANNOTATIONS):
+            break
+
     return content
 
-def IsImage(im):
-    p = im.rpartition('.')
-    ext = p[2] # Get the filename extension.
-    r = False # By default, the result is false.
-    for t in supportedTypes:
-        if(t == ext):
-            r = True
-            break
-    return r
