@@ -105,8 +105,8 @@ def ConstructVideo(imData, maxRate, minDuration):
         fr = maxRate
     # Setup FFMPEG command to concatentate the images.
     ff = FFmpeg(
-        inputs = {imData['fSpec'] + '.jpg':'-loglevel quiet -y -framerate ' + fr},
-        outputs = {'out.mp4':'-r ' + fr}
+        inputs = {imData['fSpec'] + '.jpg':'-loglevel quiet -y -framerate ' + str(fr)},
+        outputs = {'out.mp4':'-r ' + str(fr)}
     )
     #print(ff.cmd)
     ff.run() # Invoke FFMPEG
