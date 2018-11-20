@@ -1,0 +1,48 @@
+Mini-Project 3
+EC601 A1
+Charles McPherson, Jr.
+Fall 2018 - A cold November evening.
+
+I. GOAL
+    The goal of this project is to utilize two different database
+    types to accomplish the goal of logging app usage data.
+    The two database varieties used will be "SQL" and "MongoDB"
+    The database (which variety will depend on the tagged version
+    checked out of GitHub) will be stored locally on the user's
+    machine and will include a README detailing use.
+
+    Either way, there will be a companion piece of software which
+    will enable the user to view data and possibly visualize it.
+
+II. DATA GATHERED
+    The main software will be modified to gather data in two ways:
+        1.  A list of user sessions, the channel, and the number of 
+            images gathered.
+        2.  A raw table with the words, the user session, and the
+            image index.
+    User sessions will be identified by a timestamp.
+
+III. METHOD
+    At start of session:
+        session = current system time
+    Get images (as normal)
+    Add entry to the "sessions" table containing the session timestamp,
+        the channel handle, and the number of images.
+    For each image:
+        get the words found (as normal)
+            for each word:
+                 Add an entry to the "descriptors" table with:
+                    - session timestamp, image index, the word.
+
+IV. DATA RETRIEVAL
+    Data can be retrieved in a couple of ways:
+        1. Number of images in a given session
+        2. Number of sessions
+        3. Number of channels accessed
+        4. Most common descriptors
+
+V. SQL TABLE STRUCTURE
+	1. sessions
+	id (real)	session (real)	channel (text)	images (real)
+	2. descriptors
+	id (real)	session (real)	image (real)	word (text)
