@@ -6,7 +6,7 @@
 
 import random
 import tweepy
-import urllib.request
+from urllib import request
 import os
 from ffmpy import FFmpeg
 from google.cloud import vision
@@ -58,7 +58,7 @@ def GetTwImages(handle):
                     if(obj['type'] == 'photo'): # If the item is a photo, 
                         url = obj['media_url'] # Get the URL,
                         ext = url.rpartition('.')[2] # Determine the file extension.
-                        r = urllib.request.urlopen(obj['media_url']) # Get the HTML request.
+                        r = request.urlopen(obj['media_url']) # Get the HTML request.
                         # Write the image data to a file.
                         fspec = "TwImage_%03d"
                         fileName = (fspec + '.' + ext) % image_counter
@@ -69,7 +69,10 @@ def GetTwImages(handle):
                         images.append(fileName)
                         # Increment the counter.
                         image_counter = image_counter + 1
-                        # If we've grabbed enough images, break.
+                        # Display little progress indicator.
+                        print('\rImages found: %d/%d' % (image_counter,MAX_IMAGES),
+                            end='',flush=True)
+                        # If we've hit MAX_IMAGES, break.
                         if(image_counter >= MAX_IMAGES):
                             break
             if(image_counter >= MAX_IMAGES):
@@ -87,7 +90,8 @@ def GetTwImages(handle):
             return {'error':e.message}
         if(query_counter > MAX_QUERY or len(tw) == 0):
             break
-
+        
+    print(' Done') # Terminate progress indicator if running.
     return {'files':images,'fSpec':fspec,'count':image_counter}
 
 def ConstructVideo(imData, maxRate, minDuration):
@@ -129,7 +133,7 @@ def ConstructVideo(imData, maxRate, minDuration):
 def CaptionImage(im):
     c = GVIdentify(im);
     caption = '';
-    for word in c: # Make a list of random words (sprint 1)
+    for word in c:
         caption += word
         caption += '  '
     baseFileName = im.rpartition('.')[0] # Get the base file name.
@@ -147,7 +151,7 @@ def CaptionImage(im):
             ':fontsize=20:fontcolor=white@1.0"'}
     )
     ff.run() # Invoke FFMPEG
-    return baseFileName + '.jpg'
+    return c
     
 
 def GVIdentify(im):
