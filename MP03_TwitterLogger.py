@@ -5,7 +5,7 @@
 # generate an annotated video from a Twitter library.
 
 import MP01
-import sqlite3
+import pymongo
 import time
 
 sessionID = time.time() # Get UNIX time. 
@@ -15,9 +15,20 @@ handle = input("Enter Twitter handle: ")
 if(handle[0] != '@'):
     handle = '@' + handle
 
-# Open a connection to the SQL database.
-conn = sqlite3.connect('MP01_SQL.db')
-c = conn.cursor()
+# Open a connection to the MongoDB database (assuming localhost, port 27017)
+client = pymongo.MongoClient()
+try:
+    # Use dummy command to check if db is available.
+    client.admin.command('ismaster')
+except pymongo.errors.ConnectionFailure:
+    print("Database connection failed.  Ensure that 'mongod' is running")
+    print("and listening on localhost at port 27017")
+    quit()
+# Open the database
+db = client.MP03_TwitterDB_cmcphers
+# Open the two collections.
+sess = db.sessions
+desc = db.descriptors
 
 # Retrieve images from Twitter handle.
 fileList = MP01.GetTwImages(handle)
@@ -28,18 +39,11 @@ L = len(fileList['files'])
 for f in fileList['files']:
     print('\rAnalyzing: %d/%d' % (n,L),end='',flush=True)
     wordList = MP01.CaptionImage(f)
-    c.execute("SELECT * FROM descriptors ORDER BY id DESC LIMIT 1")
-    rows = c.fetchall()
-    if(len(rows) == 0):
-        rowID = 0
-    else:
-        rowID = rows[0][0]+1
-    for word in wordList:
-        c.execute("INSERT INTO descriptors VALUES (?, ?, ?, ?)",(rowID, sessionID, n+1, word))
-        rowID = rowID + 1
+    if(len(wordList) > 0):
+        # Insert entries into descriptors collection.
+        desc.insert_many([{'session':sessionID,'image':n+1,'word':w} for w in wordList])
     n = n + 1
 print('\rAnalyzing: %d/%d Done' % (n,L))
-
 
 # Construct the video.
 a = MP01.ConstructVideo(fileList,2,30)
@@ -47,13 +51,7 @@ if(a == -1):
     print("Failure in ConstructVideo()")
 else:
     # Log the session information.
-    c.execute("SELECT * FROM sessions ORDER BY id DESC LIMIT 1")
-    rows = c.fetchall()
-    if(len(rows) == 0):
-        c.execute("INSERT INTO sessions VALUES (?, ?, ?, ?)",(0, sessionID, handle, L))
-    else:
-        c.execute("INSERT INTO sessions VALUES (?, ?, ?, ?)",(row[0][0]+1, sessionID, handle, L))
-    conn.commit() # Since all execution completed successfully, commit the database changes.
+    sess.insert_one({'session':sessionID,'channel':handle,'images':L})
     print('Video created.')
 
-conn.close() # Close the SQL connection.
+client.close() # Close the MongoDB connection.
