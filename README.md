@@ -19,7 +19,7 @@ For the MP01 library to function as intended, FFMPEG must be installed with the
 3. Install tweepy (if necessary)
     a. Run ‘pip install tweepy’ from the Terminal
 
-2. Create key file for Twitter API
+4. Create key file for Twitter API
 
     a. Open a text new text file called ‘keys.txt’
     b. On each line, enter your consumer key, consumer secret, access key, and access secret.  For example:  If you had the following keys:
@@ -38,7 +38,39 @@ For the MP01 library to function as intended, FFMPEG must be installed with the
 
     c. Save the file and leave it in the directory with ‘MP01.py’
 
-II - Use
+5. Obtain API credentials for the Google Cloud Vision API
+    https://cloud.google.com/vision/
+    Install Python client library
+    https://cloud.google.com/vision/docs/libraries#client-libraries-install-python
+
+        pip3 install --upgrade google-cloud-vision
+
+6. For Mini-Project3, you will also need the following:
+
+    For mp03_sql tag:
+        Install sqlite3.
+            https://www.sqlite.org/download.html
+        Install Python component
+            pip3 install sqlite3
+
+    For mp03_mongo tag:
+        Install mongodb
+            https://docs.mongodb.com/manual/tutorial/install-mongodb-on-os-x/
+        Install pymongo
+            pip3 install pymongo
+
+        Run MongoDB Daemon on localhost from port 27017
+            Open Terminal
+            Run 'mongod'
+            Ensure that there is a line [listening on localhost at port 27017]
+
+    To use (regardless of implementation):
+        1. Run MP03_TwitterLogger.py (from Python3)
+            Do this a few times to build up statistics
+        2. Run MP03_TwitterAnalyzer.py
+            This will use the database to display statistics.
+
+II - Use (MP01 Original Library only)
 
 The MP01.py library contains 4 functions:
 #################################################

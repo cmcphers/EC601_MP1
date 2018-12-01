@@ -1,4 +1,4 @@
-# MP03_TwitterAnalyzer
+#MP03_TwitterAnalyzer
 # Charles McPherson, Jr.
 
 # Top-level Menu options:
@@ -22,24 +22,23 @@
 # Most Common Descriptors
 # Displays the 20 most common descriptors of all time
 
-import sqlite3
+import pymongo
 import time
 
 MAX_ENTRIES = 20
 
-def Global_Stats(conn):
-    c = conn.cursor()
-    # Get number of sessions
-    q = c.execute('SELECT * FROM sessions')
-    sessions = q.fetchall()
+def Global_Stats(sess):
+    # Get list of sessions
+    q = sess.find({})
+    sessions = [s for s in q]
+        
     # Get average number of images per session
     avg = 0
     for s in sessions:
-        avg = avg + s[3]
+        avg = avg + s['images']
     avg = avg/len(sessions)
     # Get number of unique channels accessed
-    q = c.execute('SELECT DISTINCT channel FROM sessions')
-    channels = q.fetchall()
+    channels = sess.distinct('channel')
     
     print('')
     print('')
@@ -50,13 +49,14 @@ def Global_Stats(conn):
     print('')
     print('')
 
-def Session_Info(conn):
-    c = conn.cursor()
+def Session_Info(sess):
     # Get earliest and latest session timestamps
-    q = c.execute('SELECT * FROM sessions ORDER BY session ASC LIMIT 1')
-    tOld = time.localtime(q.fetchone()[1])
-    q = c.execute('SELECT * FROM sessions ORDER BY session DESC LIMIT 1')
-    tNew = time.localtime(q.fetchone()[1])
+    q = sess.find({}).sort('session',pymongo.ASCENDING)
+    q = [s for s in q]
+    tOld = time.localtime(q[0]['session'])
+    q = sess.find({}).sort('session',pymongo.DESCENDING)
+    q = [s for s in q]
+    tNew = time.localtime(q[0]['session'])
 
     print('')
     print('')
@@ -77,33 +77,29 @@ def Session_Info(conn):
             break
         except ValueError:
             print('Format error. Ex: 2018-09-25 10:34:04 PM')
-    q = c.execute('SELECT * FROM sessions WHERE session >= ? AND session <= ?',(time.mktime(tStart),time.mktime(tEnd)))
-    sessionList = q.fetchall()
-    print('{:^8s}{:^23s}{:^30s}{:^8s}'.format('ID','TIME STAMP','CHANNEL','IMAGES'))
+    q = sess.find({'session':{'$gte':time.mktime(tStart),'$lte':time.mktime(tEnd)}})
+    sessionList = [s for s in q]
+    print('{:^23s}{:^30s}{:^8s}'.format('TIME STAMP','CHANNEL','IMAGES'))
     n = len(sessionList)
     if(n > MAX_ENTRIES):
         n = MAX_ENTRIES
     for i in range(n):
-        sessionID = str(sessionList[i][0])
-        sessionTime = time.strftime('%Y-%m-%d %I:%M:%S %p',time.localtime(sessionList[i][1]))
-        sessionChan = sessionList[i][2]
-        sessionImages = str(sessionList[i][3])
-        print("{0:^8s}{1:^23s}{2:^30s}{3:^8s}".format(sessionID,
+        sessionTime = time.strftime('%Y-%m-%d %I:%M:%S %p',time.localtime(sessionList[i]['session']))
+        sessionChan = sessionList[i]['channel']
+        sessionImages = str(sessionList[i]['images'])
+        print("{:^23s}{:^30s}{:^8s}".format(
             sessionTime, sessionChan, sessionImages))
     print('')
     print('')
 
-def Descriptors(conn):
-    c = conn.cursor()
+def Descriptors(desc):
     # Get all unique descriptors
-    q = c.execute('SELECT DISTINCT word FROM descriptors')
-    words = q.fetchall()
-    wordList = [x[0] for x in words] # Get word out of each tuple.
+    wordList = desc.distinct('word') 
     counts = [0]*len(wordList)
     # Count the number of occurrences of each word
     for i in range(len(wordList)):
-        q = c.execute("SELECT * FROM descriptors WHERE word=?",(wordList[i],))
-        counts[i] = len(q.fetchall())
+        q = desc.find({'word':wordList[i]})
+        counts[i] = q.count()
     hist = sorted(zip(counts,wordList),reverse=True)
     sortedWords = [x for _,x in hist]
     sortedCounts = [x for x,_ in hist]
@@ -118,7 +114,22 @@ def Descriptors(conn):
     print('')
 
 #__main__()
-conn = sqlite3.connect('MP01_SQL.db')
+# Open connection to MongoDB database (assuming localhost, port 27017)
+client = pymongo.MongoClient()
+try:
+    # Use dummy command to check if db is available.
+    client.admin.command('ismaster')
+except pymongo.errors.ConnectionFailure:
+    print("Database connection failed.  Ensure that 'mongod' is")
+    print("running and listening on localhost at port 27017")
+    quit()
+
+# Open the database
+db = client.MP03_TwitterDB_cmcphers
+# Open the collections
+sess = db.sessions
+desc = db.descriptors
+
 quit = False
 while not quit:
     print('Twitter Analyzer')
@@ -129,17 +140,17 @@ while not quit:
     while True:
         choice = input('Select an option: ')
         if(choice == '1'):
-            Global_Stats(conn)
+            Global_Stats(sess)
             break
         elif(choice == '2'):
-            Session_Info(conn)
+            Session_Info(sess)
             break
         elif(choice == '3'):
-            Descriptors(conn)
+            Descriptors(desc)
             break
         elif(choice == '4'):
             quit = True
             break
         else:
             print('Invalid entry')
-conn.close()
+client.close() # Close connection
